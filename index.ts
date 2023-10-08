@@ -1,18 +1,34 @@
-// const handEvaluator = require('./handEvaluatorModule')
-// const hand = handEvaluator.Hand;
+const handEvaluator = require('./handEvaluatorModule')
+const evaluator = handEvaluator.Hand;
 
-import { type } from "os";
+let hand = 'As Ad';
+let board = 'Ah 2s 3s';
+console.log(evaluator.validateHand(hand, board))
 
+// const Suits = handEvaluator.Suits;
 
-// let h = new hand();
-// console.log(h.GetSomething('Hello'));
+// let suit = 0;
 
-enum Test {
-    One2 = 2,
-    Two3 = 3,
-    Three4 = 4
-}
+// let index = { value: 1 };
+// let cards = hand;
+// switch (cards[index.value++]) {
+//     case 'H': 
+//     case 'h':
+//         suit = Suits.Hearts;
+//         break;
+//     case 'D':
+//     case 'd':
+//         suit = Suits.Diamonds;
+//         break;
+//     case 'C': 
+//     case 'c':
+//         suit = Suits.Clubs;
+//         break;
+//     case 'S':
+//     case 's':
+//         suit = Suits.Spades;
+//         break;
+// }
 
-let testEnum: keyof typeof Test = 'One2';
-testEnum = 'Two3';
-console.log((<any>Test)["Two" + "2"]);
+// console.log(suit);
+// console.log(index.value)
