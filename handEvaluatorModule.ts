@@ -1,3 +1,5 @@
+const constants = require('./handEvaluatorConstants');
+
 enum HandTypes {
     HighCard = 0,
     Pair = 1,
@@ -34,19 +36,7 @@ enum Rank {
     Joker = 51
 }
 
-const NUMBER_OF_CARDS = 52;
-const NUMBER_OF_CARDS_WITH_JOKER = 53;
-const HANDTYPE_SHIFT = 24;
-const TOP_CARD_SHIFT = 16;
-const TOP_CARD_MASK = 0x000F0000;
-const SECOND_CARD_SHIFT = 12;
-const SECOND_CARD_MASK = 0X0000F000;
-const THIRD_CARD_SHIFT = 8;
-const FOURTH_CARD_SHIFT = 4;
-const FIFTH_CARD_SHIFT = 0;
-const FIFTH_CARD_MASK = 0x0000000F;
-const CARD_WIDTH = 4;
-const CARD_MASK = 0x0F;
+
 
 class Hand {
     private handmask: number;
@@ -65,6 +55,10 @@ class Hand {
 
     constructor() {
         this.pocket = this.board = '';
+    }
+
+    private static BitCount(bitField: number): number {
+        
     }
 
     private static nextCard(cards: string, index: { value: number }): number {
@@ -235,15 +229,95 @@ class Hand {
     }
 
     public static handType(handValue: number): number {
-        return (handValue >> HANDTYPE_SHIFT);
+        return (handValue >> constants.HANDTYPE_SHIFT);
+    }
+
+    private static topCard(handValue: number): number {
+        return (handValue >> constants.TOP_CARD_SHIFT) & constants.CARD_MASK;
+    }
+
+    private static secondCard(handValue: number): number {
+        return (handValue >> constants.SECOND_CARD_SHIFT) & constants.CARD_MASK;
+    }
+
+    private static thirdCard(handValue: number): number {
+        return (handValue >> constants.THIRD_CARD_SHIFT) & constants.CARD_MASK;
+    }
+
+    private static fourthCard(handValue: number): number {
+        return (handValue >> constants.FOURTH_CARD_SHIFT) & constants.CARD_MASK;
+    }
+
+    private static fifthCard(handValue: number): number {
+        return (handValue >> constants.FIFTH_CARD_SHIFT) & constants.CARD_MASK;
+    }
+    
+    private static handTypeValue(handType: HandTypes): number {
+        return handType << constants.HANDTYPE_SHIFT;
     }
 
     public static descriptionFromHandValue(handValue: number): string {
         let result = [];
 
-        switch(<any>(HandTypes)[this.handType(handValue)]) {
-            case HandTypes.HighCard: result.push('High card: ')
+        const handType = <any>(HandTypes)[this.handType(handValue)];
+        switch(handType) {
+            case HandTypes.HighCard: 
+                result.push('High card: ');
+                result.push(constants.RANK_TABLE[this.topCard(handValue)]);
+                break;
+            case HandTypes.Pair:
+                result.push('One pair, ');
+                result.push(constants.RANK_TABLE[this.topCard(handValue)]);
+                break;
+            case HandTypes.TwoPair:
+                result.push('Two Pair, ');
+                result.push(constants.RANK_TABLE[this.topCard(handValue)]);
+                result.push("'s with a ");
+                result.push(constants.RANK_TABLE[this.secondCard(handValue)]);
+                result.push(constants.RANK_TABLE[this.thirdCard(handValue)]);
+                result.push(' for a kicket');
+                break;
+            case HandTypes.Trips:
+                result.push('Three of a kind, ');
+                result.push(constants.RANK_TABLE[this.topCard(handValue)]);
+                result.push("'s");
+                break;
+            case HandTypes.Straight:
+                result.push('A straight, ');
+                result.push(constants.RANK_TABLE[this.topCard(handValue)]);
+                result.push(' high');
+                break;
+            case HandTypes.Flush:
+                result.push('A flush');
+                result.push(constants.RANK_TABLE[this.topCard(handValue)]);
+                result.push(' high');
+                break;
+            case HandTypes.FullHouse:
+                result.push('A fullhouse, ');
+                result.push(constants.RANK_TABLE[this.topCard(handValue)]);
+                result.push("'s and ");
+                result.push(constants.RANK_TABLE[this.secondCard(handValue)]);
+                result.push("'s");
+                break;
+            case HandTypes.FourOfAKind:
+                result.push('Four of a kind, ');
+                result.push(constants.RANK_TABLE[this.topCard(handValue)]);
+                result.push("'s");
+                break;
+            case HandTypes.StraightFlush:
+                result.push('A straight flush');
+                break;
         }
+
+        return result.join('');
+    }
+
+    /**
+     * Evaluates a hand and returns a descriptive string
+     * @param cards : cards mask
+     */
+    public static DescriptionFromMask(cards: number): string {
+
     }
 }
 
