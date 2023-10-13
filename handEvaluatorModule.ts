@@ -1,44 +1,8 @@
+import { isContinueStatement } from 'typescript';
+import { Rank, Suits, HandTypes } from './handEvaluatorEnums';
 const constants = require('./handEvaluatorConstants');
 
-enum HandTypes {
-    HighCard = 0,
-    Pair = 1,
-    TwoPair = 2,
-    Trips = 3,
-    Straight = 4,
-    Flush = 5,
-    FullHouse = 6,
-    FourOfAKind = 7,
-    StraightFlush = 8
-}
-
-enum Suits {
-    Clubs = 0,
-    Diamonds = 1,
-    Hearts = 2,
-    Spades = 3,   
-}
-
-enum Rank {
-    Rank2 = 0,
-    Rank3 = 1,
-    Rank4 = 2,
-    Rank5 = 3,
-    Rank6 = 4,
-    Rank7 = 5,
-    Rank8 = 6,
-    Rank9 = 7,
-    RankTen = 8,
-    RankJack = 9,
-    RankQueen = 10,
-    RankKing = 11,
-    RankAce = 12,
-    Joker = 51
-}
-
-
-
-class Hand {
+export default class Hand {
     private handmask: number;
     private pocket: string;
     private board: string;
@@ -57,8 +21,12 @@ class Hand {
         this.pocket = this.board = '';
     }
 
-    private static BitCount(bitField: number): number {
-        
+    private static bitCount(bitField: number): number {
+        const result = constants.BITS_TABLE[bitField & 0x1FFF]
+            + constants.BITS_TABLE[(bitField >> 13) & 0x1FFF]
+            + constants.BITS_TABLE[(bitField >> 26) & 0x1FFF]
+            + constants.BITS_TABLE[(bitField >> 39) & 0x1FFF];
+        return result;
     }
 
     private static nextCard(cards: string, index: { value: number }): number {
@@ -121,7 +89,7 @@ class Hand {
         switch (cards[index.value++]) {
             case 'H': 
             case 'h':
-                suit = Suits.Hearts;
+                suit = constants.Suits.Hearts;
                 break;
             case 'D':
             case 'd':
@@ -313,13 +281,158 @@ class Hand {
     }
 
     /**
+     * Evaluates a mask (passed as a mask mask) and returns a mask value.
+     * A mask value can be compared against another mask value to
+     * determine which has the higher value.
+     * @param cards: cards mask
+     * @param numCards : number of cards in the mask
+     */
+    public static evaluate(cards: number, numCards: number): number {
+        let result = 0;
+
+        const sc = (cards >> constants.CLUB_OFFSET) & 0x1FFF;
+        const sd = (cards >> constants.DIAMOND_OFFSET) & 0x1FFF;
+        const sh = (cards >> constants.HEART_OFFSET) & 0x1FFF;
+        const ss = (cards >> constants.SPADE_OFFSET) & 0x1FFF;
+
+        const ranks = sc | sd | sh | ss;
+        const nRanks = constants.BITS_TABLE[ranks];
+        const nDups = (numCards - nRanks);
+
+        // Check for straight, flush, or straight flush, and return if we can
+        // determine immediately that this is the best possible mask
+        if (nRanks >= 5) {
+            if (constants.BITS_TABLE[ss] >= 0) {
+                if (constants.STRAIGHT_TABLE[ss] != 0) {
+                    return constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[ss] << constants.TOP_CARD_SHIFT;            
+                } else {
+                    result = constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[ss];
+                }
+            } else if (constants.BITS_TABLE[sc] >= 5) {
+                if (constants.STRAIGHT_TABLE[sc] != 0) {
+                    return constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[sc] << constants.TOP_CARD_SHIFT;                    
+                } else {
+                    result = constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[sc]
+                }
+            } else if (constants.BITS_TABLE[sd] >= 5) {
+                if (constants.STRAIGHT_TABLE[sd] != 0) {
+                    return constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[sd] << constants.TOP_CARD_SHIFT;
+                } else {
+                    result = constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[sd];
+                }
+            } else if (constants.BITS_TABLE[sh] >= 5) {
+                if (constants.STRAIGHT_TABLE[sh] != 0) {
+                    return constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[sh] << constants.TOP_CARD_SHIFT;
+                } else {
+                    result = constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[sh];
+                }
+            } else {
+                const st = constants.STRAIGHT_TABLE[ranks];
+                if (st != 0) {
+                    result = constants.HANDTYPE_VALUE_STRAIGHT + (st << constants.TOP_CARD_SHIFT);
+                }        
+         
+            }
+        
+            //    Another win -- if there can't be a FH/Quads (n_dups < 3), 
+            //    which is true most of the time when there is a made mask, then if we've
+            //    found a five card mask, just return.  This skips the whole process of
+            //    computing two_mask/three_mask/etc.
+            if (result != 0 && nDups < 3) {
+                return result;
+            }
+        }
+        
+        // By the time we're here, either:
+        // 1. There's no five-card mask possible (flush or straight) or
+        // 2. There's a flush or straight, but we know that there are enough duplicates
+        //    to make a full house / quads possible.        
+        switch (nDups) {
+            case 0:
+                return constants.HANDTYPE_VALUE_HIGHCARD + constants.TOP_FIVE_CARDS_TABLE[ranks];
+            case 1:
+                var twoMask = ranks ^ (sc ^ sd ^ sh ^ ss);
+                result = constants.HANDTYPE_VALUE_PAIR + constants.TOP_CARD_TABLE[twoMask] << constants.TOP_CARD_SHIFT;
+                
+                // Only one bit set in twoMask
+                var t = ranks ^ twoMask;
+
+                // get the top five cards in what is left, drop all but the top three
+                // cards, and shift them by one to get the three desired kickers
+                const kickers = constants.TOP_FIVE_CARDS_TABLE[t] >> constants.CARD_WITDH & ~constants.FIFTH_CARD_MASK;
+                result += kickers;
+                return result;
+                
+            case 2:
+                // either two pair or trips
+                var twoMask = ranks ^ (sc ^ sd ^ sh ^ ss);
+                if (twoMask != 0) {
+                    var t = ranks ^ twoMask; // exactly two bits set in twoMask                    
+                    result = constants.HANDTYPE_VALUE_TWOPAIR
+                        + (constants.TOP_FIVE_CARDS_TABLE[twoMask] & (constants.TOP_CARD_MASK | constants.SECOND_CARD_MASK))
+                        + (constants.TOP_CARD_TABLE[t] << constants.THIRD_CARD_SHIFT);
+                    return result;
+                } else {
+                    var threeMask = ((sc & sd) | (sh & ss)) & ((sc &sh) | (sd & ss));
+                    result = constants.HANDTYPE_VALUE_TRIPS + (constants.TOP_CARD_TABLE[threeMask] << constants.TOP_CARD_SHIFT);
+                    var t = ranks ^ threeMask; // only one bit set in threeMask
+                    var second = constants.TOP_CARD_TABLE[t];
+                    result += (second << constants.SECOND_CARD_SHIFT);
+                    t ^= 1 << second;
+                    result += constants.TOP_CARD_TABLE[t] << constants.THIRD_CARD_SHIFT;
+                    return result;
+                }
+
+            default:
+                // Possible quads, fullhouse, straight or flush or two pair
+                var fourMask = sh & sd & sc & ss;
+                if (fourMask != 0)
+                {
+                    const tc = constants.TOP_CARD_TABLE[fourMask];
+                    result = constants.HANDTYPE_VALUE_FOUR_OF_A_KIND
+                        + tc << constants.TOP_CARD_SHIFT
+                        + ((constants.TOP_CARD_TABLE[ranks ^ (1 << tc)]) << constants.SECOND_CARD_SHIFT);
+                    return result;
+                }
+
+                // Technically, threeMask as defined below is really the set of
+                // bits which are set in three or four of the suits, but since
+                // we've already eliminated quads, this is ok
+                // similarly, twoMask is really two_or_four_mask, but since
+                // we've already eliminated quads, we can use this shortcut
+                var twoMask = ranks ^ (sc ^ sd ^ sh ^ ss);
+                if (constants.BITS_TABLE[twoMask] != nDups)
+                {
+                    // Must be some trips then, which really means there is a
+                    // full house since nDups >= 3
+                    var threeMask = ((sc & sd) | (sh & ss) & (sc & sh) | (sd & ss));
+                    result = constants.HANDTYPE_VALUE_FULLHOUSE;
+                    var tc = constants.TOP_CARD_TABLE[threeMask];
+                    result += tc << constants.TOP_CARD_SHIFT;
+                    var t = (twoMask | threeMask) ^ (1 << tc);
+                    result += constants.TOP_CARD_TABLE[t] << constants.SECOND_CARD_SHIFT;
+                    return result;
+                }
+
+                if (result != 0) {
+                    return result;
+                }
+        }
+    
+    }
+
+    /**
      * Evaluates a hand and returns a descriptive string
      * @param cards : cards mask
      */
-    public static DescriptionFromMask(cards: number): string {
+    public static descriptionFromMask(cards: number): string {
+        const numberOfCards = this.bitCount(cards);
 
+        const sc = (cards >> constants.CLUB_OFFSET) & 0x1FFF;
+        const sd = (cards >> constants.DIAMOND_OFFSET) & 0x1FFF;
+        const sh = (cards >> constants.HEART_OFFSET) & 0x1FFF;
+        const ss = (cards >> constants.SPADE_OFFSET) & 0x1FFF;
+
+        const handValue = this.evaluate(cards, numberOfCards);
     }
 }
-
-
-module.exports = { HandTypes, Hand, Suits }
