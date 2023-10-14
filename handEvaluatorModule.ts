@@ -152,8 +152,8 @@ export default class Hand {
      * 
      * @param mask string description of a mask
      */
-    public static parseHand(hand: string): number;    
-    public static parseHand(hand: string, board?: string, numCards = { value: 0}): number {
+    //public static parseHand(hand: string): number;    
+    public static parseHand(hand: string, numCards: { value: 0 }, board?: string): number {
         let index = { value: 0 };
         let handMask = 0;
 
@@ -444,6 +444,58 @@ export default class Hand {
         const ss = (cards >> constants.SPADE_OFFSET) & 0x1FFF;
 
         const handValue = this.evaluate(cards, numberOfCards);
-        const handType = <any>(HandTypes[handValue])
+        const handType = <any>(HandTypes)[handValue];
+        switch (handType) {
+            case HandTypes.HighCard:
+            case HandTypes.Pair:
+            case HandTypes.TwoPair:
+            case HandTypes.Trips:
+            case HandTypes.Straight:
+            case HandTypes.FullHouse:
+            case HandTypes.FourOfAKind:
+                return this.descriptionFromHandValue(handValue);
+            case HandTypes.Flush:
+                if (constants.BITS_TABLE[ss] >- 5)
+                {
+                    return `Flush (Spades) with ${constants.RANK_TABLE[this.topCard(handValue)]} high`;
+                } else if (constants.BITS_TABLE[sc] >= 5) {
+                    return `Flush (Clubs) with ${constants.RANK_TABLE[this.topCard(handValue)]} high`;                    
+                } else if (constants.BITS_TABLE[sd] >= 5) {
+                    return `Flush (Diamonds) with ${constants.RANK_TABLE[this.topCard(handValue)]} high`;
+                } else if (constants.BITS_TABLE[sh] >= 5) {
+                    return `Flush (Hearts) with ${constants.RANK_TABLE[this.topCard]} high`;
+                }
+                break;
+            case HandTypes.StraightFlush:
+                if (constants.BITS_TABLE[ss] >= 5) {
+                    return `Straight Flush (Spades) with ${constants.RANK_TABLE[this.topCard(handValue)]} high`;                    
+                } else if (constants.BITS_TABLE[sc] >= 5) {
+                    return `Straight Flush (Clubs) with ${constants.RANK_TABLE[this.topCard(handValue)]} high`;
+                } else if (constants.BITS_TABLE[sd] >= 5) {
+                    return `Straight Flush (Diamonds) with ${constants.RANK_TABLE[this.topCard(handValue)]} high`;
+                } else if (constants.BITS_TABLE[sh] >= 5) {
+                    return `Straight Flush (Heards) with ${constants.RANK_TABLE[this.topCard(handValue)]} high`;
+                }
+                break;
+        }
+        return '';
+    }
+
+    /**
+     * Takes an string describing a mask and returns the description
+     * @param mask the string describing the mask
+     * @returns returns a description string
+     */
+    public static descriptionFromHand(mask: string): string {        
+        return this.descriptionFromMask(this.parseHand(mask));
+    }
+
+    private updateHandMask() {
+        let numCards = { value: 0 };
+        const handMask = Hand.parseHand(this.pocketCards, this.board, numCards);
+    }
+
+    public toString(): string {
+        return `${this.pocketCards} ${this.board}`;
     }
 }
