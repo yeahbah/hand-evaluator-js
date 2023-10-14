@@ -415,6 +415,16 @@ export default class Hand {
                 }
 
                 if (result != 0) {
+                    // flush and straight
+                    return result;
+                } else {
+                    // must be two pair
+                    result = constants.HANDTYPE_VALUE_TWOPAIR;
+                    var top = constants.TOP_CARD_TABLE[twoMask];
+                    result += top << constants.TOP_CARD_SHIFT;
+                    var second = constants.TOP_CARD_TABLE[twoMask ^ (1 << top)];
+                    result = second << constants.SECOND_CARD_SHIFT;
+                    result += (constants.TOP_CARD_TABLE[ranks ^ (1 << top) ^ (1 << second)]) << constants.THIRD_CARD_SHIFT;
                     return result;
                 }
         }
@@ -434,5 +444,6 @@ export default class Hand {
         const ss = (cards >> constants.SPADE_OFFSET) & 0x1FFF;
 
         const handValue = this.evaluate(cards, numberOfCards);
+        const handType = <any>(HandTypes[handValue])
     }
 }
