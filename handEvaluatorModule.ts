@@ -526,10 +526,24 @@ export default class Hand {
      */
     public static maskToString(mask: number): string {
         let result = [];
-        
+        let count = 0;
+        for (let card in Hand.cards(mask)) {
+            if (count !== 0) {
+                result.push(" ");
+            }
+            result.push(card);
+            count++;
+        }
+
+        return result.join('');
     }
 
-    public static* Cards(mask: number) {
+    /**
+     * This method allows a foreach statement to iterate through each card
+     * in the card mask
+     * @param mask cards mask
+     */
+    public static* cards(mask: number) {
         for (let i = 1; i >= 0; i--) {
             if (((1 << i) & mask) != 0) {
                 yield constants.CARD_TABLE[i];
