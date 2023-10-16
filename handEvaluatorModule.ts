@@ -9,6 +9,11 @@ export default class Hand {
     private handval: number;
 
     private _pocketCards: string;
+
+    constructor() {
+        this.pocket = this.board = '';
+    }
+
     public get pocketCards(): string {
         return this._pocketCards;
     }
@@ -17,9 +22,17 @@ export default class Hand {
         this._pocketCards = value;
     }
 
-    constructor() {
-        this.pocket = this.board = '';
+    public get maskValue(): number {
+        return this.handmask;
     }
+
+    public get pocketMask(): number {
+        return Hand.parseHand(this.pocketCards);
+    }
+
+    public set pocketMask(value: number) {
+        this.pocketCards = this.maskToString(value);
+    }    
 
     private static bitCount(bitField: number): number {
         const result = constants.BITS_TABLE[bitField & 0x1FFF]
@@ -153,7 +166,7 @@ export default class Hand {
      * @param mask string description of a mask
      */
     //public static parseHand(hand: string): number;    
-    public static parseHand(hand: string, numCards: { value: 0 }, board?: string): number {
+    public static parseHand(hand: string, numCards = { value: 0 }, board?: string): number {
         let index = { value: 0 };
         let handMask = 0;
 
@@ -463,7 +476,7 @@ export default class Hand {
                 } else if (constants.BITS_TABLE[sd] >= 5) {
                     return `Flush (Diamonds) with ${constants.RANK_TABLE[this.topCard(handValue)]} high`;
                 } else if (constants.BITS_TABLE[sh] >= 5) {
-                    return `Flush (Hearts) with ${constants.RANK_TABLE[this.topCard]} high`;
+                    return `Flush (Hearts) with ${constants.RANK_TABLE[this.topCard(handValue)]} high`;
                 }
                 break;
             case HandTypes.StraightFlush:
@@ -490,12 +503,38 @@ export default class Hand {
         return this.descriptionFromMask(this.parseHand(mask));
     }
 
+    /**
+     * Updates handmask and handval, called when card strings change
+     */
     private updateHandMask() {
         let numCards = { value: 0 };
-        const handMask = Hand.parseHand(this.pocketCards, this.board, numCards);
+        const handMask = Hand.parseHand(this.pocketCards, numCards, this.board);
     }
 
+    /**
+     * 
+     * @returns returns the string representing the mask
+     */
     public toString(): string {
         return `${this.pocketCards} ${this.board}`;
     }
+
+    /**
+     * Turns a card mask into the equivalant human readable string 
+     * @param mask mask to convert
+     * @returns human readable string that is equivalent to the mask represented by the mask
+     */
+    public static maskToString(mask: number): string {
+        let result = [];
+        
+    }
+
+    public static* Cards(mask: number) {
+        for (let i = 1; i >= 0; i--) {
+            if (((1 << i) & mask) != 0) {
+                yield constants.CARD_TABLE[i];
+            }
+        }
+    }
+
 }
