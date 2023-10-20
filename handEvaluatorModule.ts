@@ -551,4 +551,28 @@ export default class Hand {
         }
     }
 
+    public static evaluateType(mask: number): HandTypes;
+    public static evaluateType(mask: number, numCards: number = 0): HandTypes {
+        const ss = (mask >> constants.SPADE_OFFSET) & 0x1FFF;
+        const sc = (mask >> constants.CLUB_OFFSET) & 0x1FFF;
+        const sd = (mask >> constants.DIAMOND_OFFSET) & 0x1FFF;
+        const sh = (mask >> constants.HEART_OFFSET) & 0x1FFF;
+        
+        const ranks = sc | sd | sh | ss;
+        const rankInfo = constants.BITS_AND_STR_TABLE[ranks];
+        const numDups = numCards - (rankInfo >> 2);
+
+        let result = HandTypes.HighCard
+        if ((rankInfo & 0x01) != 0) {
+            if ((rankInfo & 0x02) != 0) {
+                result = HandTypes.Straight;
+            }
+
+            const t = constants.BITS_AND_STR_TABLE[ss] | constants.BITS_AND_STR_TABLE[sc] | constants.BITS_AND_STR_TABLE[sd] | constants.BITS_AND_STR_TABLE[sh];
+            if ((t & 0x01) != 0) {
+                
+            }
+        }
+    }
+
 }
