@@ -1,12 +1,12 @@
-import { isContinueStatement } from 'typescript';
-import { Rank, Suits, HandTypes } from './handEvaluatorEnums';
+//import { isContinueStatement } from 'typescript';
+import { Enums } from './handEvaluatorEnums';
 const constants = require('./handEvaluatorConstants');
 
 export default class Hand {
     private handmask: number;
     private pocket: string;
     private board: string;
-    private handval: number;
+    //private handval: number;
 
     private _pocketCards: string;
 
@@ -30,9 +30,9 @@ export default class Hand {
         return Hand.parseHand(this.pocketCards);
     }
 
-    public set pocketMask(value: number) {
-        this.pocketCards = this.maskToString(value);
-    }    
+    // public set pocketMask(value: number) {
+    //     this.pocketCards = this.maskToString(value);
+    // }    
 
     private static bitCount(bitField: number): number {
         const result = constants.BITS_TABLE[bitField & 0x1FFF]
@@ -102,7 +102,7 @@ export default class Hand {
         switch (cards[index.value++]) {
             case 'H': 
             case 'h':
-                suit = constants.Suits.Hearts;
+                suit = Suits.Hearts;
                 break;
             case 'D':
             case 'd':
@@ -294,13 +294,26 @@ export default class Hand {
     }
 
     /**
+     * Evaluates a mask (passed as a string) and returns a mask value.
+     * A mask value can be compared against another mask value to
+     * determine which has the higher value.
+     * @param mask mask string
+     * @returns Hand value bit field
+     */
+    public static evaluateMask(mask: string): number {        
+        return Hand.evaluate(Hand.parseHand(mask, { value: 0 }));
+    }
+
+    /**
      * Evaluates a mask (passed as a mask mask) and returns a mask value.
      * A mask value can be compared against another mask value to
      * determine which has the higher value.
      * @param cards: cards mask
      * @param numCards : number of cards in the mask
      */
-    public static evaluate(cards: number, numCards: number): number {
+    public static evaluate(cards: number): number;
+    public static evaluate(cards: number, numCards?: number): number {
+        numCards = numCards ?? this.bitCount(cards);
         let result = 0;
 
         const sc = (cards >> constants.CLUB_OFFSET) & 0x1FFF;
@@ -495,7 +508,7 @@ export default class Hand {
     }
 
     /**
-     * Takes an string describing a mask and returns the description
+     * Takes a string describing a mask and returns the description
      * @param mask the string describing the mask
      * @returns returns a description string
      */
@@ -551,6 +564,11 @@ export default class Hand {
         }
     }
 
+    /**
+     * This function is faster (but provides less information) than evaluate   
+     * @param mask card mask
+     * @returns HandType enum that describes the rank of the mask
+     */
     public static evaluateType(mask: number): HandTypes;
     public static evaluateType(mask: number, numCards: number = 0): HandTypes {
         const ss = (mask >> constants.SPADE_OFFSET) & 0x1FFF;
@@ -562,7 +580,7 @@ export default class Hand {
         const rankInfo = constants.BITS_AND_STR_TABLE[ranks];
         const numDups = numCards - (rankInfo >> 2);
 
-        let result = HandTypes.HighCard
+        let result = HandTypes.HighCard;
         if ((rankInfo & 0x01) != 0) {
             if ((rankInfo & 0x02) != 0) {
                 result = HandTypes.Straight;
@@ -570,9 +588,37 @@ export default class Hand {
 
             const t = constants.BITS_AND_STR_TABLE[ss] | constants.BITS_AND_STR_TABLE[sc] | constants.BITS_AND_STR_TABLE[sd] | constants.BITS_AND_STR_TABLE[sh];
             if ((t & 0x01) != 0) {
-                
+                return HandTypes.StraightFlush;
+            } else {
+                result = HandTypes.Flush;
             }
+
+            if (numDups < 3) {
+                return result;
+            }
+
+            switch (numDups) {
+                case 0:
+                    return HandTypes.HighCard;
+                case 1:
+                    return HandTypes.Pair;
+                case 2: 
+                    return ((ranks ^ (sc ^ sd ^ sh ^ss)) != 0) ? HandTypes.TwoPair : HandTypes.Trips;
+                default:
+                    if (((sc & sd) & (sh & ss)) != 0) {
+                        return HandTypes.FourOfAKind;
+                    } else if ((((sc & sd) | (sh & ss)) & ((sc & sh) | (sd & ss))) != 0) {
+                        return HandTypes.FullHouse;                    
+                    } else {
+                        return HandTypes.TwoPair;
+                    }
+
+            }            
         }
+
+        return result;
     }
+
+    
 
 }
