@@ -1,6 +1,6 @@
-import { Suits, HandTypes, Rank } from './handEvaluatorEnums';
+import { HandTypes, Suits } from "./handEvaluatorEnums";
 
-module.exports = Object.freeze({
+export const constants = Object.freeze({
     NUMBER_OF_CARDS: 52,
     NUMBER_OF_CARDS_WITH_JOKER: 53,
     HANDTYPE_SHIFT: 24,
@@ -14,10 +14,10 @@ module.exports = Object.freeze({
     FIFTH_CARD_MASK: 0x0000000F,
     CARD_WIDTH: 4,
     CARD_MASK: 0x0F,
-    SPADE_OFFSET: 13 * Suits.Spades,
-    CLUB_OFFSET: 13 * Suits.Clubs,
-    DIAMOND_OFFSET: 13 * Suits.Diamonds,
-    HEART_OFFSET: 13 * Suits.Hearts,
+    SPADE_OFFSET: BigInt(13 * Suits.Spades),
+    CLUB_OFFSET: BigInt(13 * Suits.Clubs),
+    DIAMOND_OFFSET: BigInt(13 * Suits.Diamonds),
+    HEART_OFFSET: BigInt(13 * Suits.Hearts),
     HANDTYPE_VALUE_STRAIGHTFLUSH: HandTypes.StraightFlush << 24,
     HANDTYPE_VALUE_STRAIGHT: HandTypes.Straight << 24,
     HANDTYPE_VALUE_FLUSH: HandTypes.Flush << 24,

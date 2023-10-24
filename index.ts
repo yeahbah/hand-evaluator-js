@@ -6,13 +6,18 @@ console.log(Hand);
 
 let hand = 'As Ad';
 let board = 'Ah 2s 3s';
-console.log(evaluator.validateHand(hand, board))
+//console.log(evaluator.validateHand(hand, board))
 
 
-// const handMask = evaluator.parseHand(hand +' '+board);
-// const handVal = evaluator.evaluate(handMask, 5);
-// const handDescription = evaluator.descriptionFromHandValue(handVal);
-// console.log(handDescription);
+let numCards = { value: 0 };
+const handMask = evaluator.parseHand(hand, numCards, board);
+console.log(handMask);
+console.log(numCards)
+
+const handVal = evaluator.evaluate(handMask, numCards.value);
+console.log(`hand value: ${handVal}`);
+const handDescription = evaluator.descriptionFromHandValue(handVal);
+console.log(handDescription);
 
 
 // const Suits = handEvaluator.Suits;
