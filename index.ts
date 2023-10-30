@@ -1,9 +1,24 @@
-const handEvaluator = require('./handEvaluatorModule')
-const evaluator = handEvaluator.Hand;
+//const handEvaluator = require('./handEvaluatorModule')
+import Hand from './handEvaluatorModule';
+const evaluator = Hand;
+
+console.log(Hand);
 
 let hand = 'As Ad';
 let board = 'Ah 2s 3s';
-console.log(evaluator.validateHand(hand, board))
+//console.log(evaluator.validateHand(hand, board))
+
+
+let numCards = { value: 0 };
+const handMask = evaluator.parseHand(hand, numCards, board);
+console.log(handMask);
+console.log(numCards)
+
+const handVal = evaluator.evaluate(handMask, numCards.value);
+console.log(`hand value: ${handVal}`);
+const handDescription = evaluator.descriptionFromHandValue(handVal);
+console.log(handDescription);
+
 
 // const Suits = handEvaluator.Suits;
 
