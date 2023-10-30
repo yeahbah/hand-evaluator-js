@@ -1,6 +1,6 @@
 import { isContinueStatement } from 'typescript';
-import { Rank, Suits, HandTypes } from './handEvaluatorEnums';
-const constants = require('./handEvaluatorConstants');
+import { Rank, Suits, HandTypes, constants } from './handEvaluatorConstants';
+//const constants = require('./handEvaluatorConstants');
 
 export default class Hand {
     private handmask: number;
@@ -102,7 +102,7 @@ export default class Hand {
         switch (cards[index.value++]) {
             case 'H': 
             case 'h':
-                suit = constants.Suits.Hearts;
+                suit = Suits.Hearts;
                 break;
             case 'D':
             case 'd':
@@ -300,13 +300,14 @@ export default class Hand {
      * @param cards: cards mask
      * @param numCards : number of cards in the mask
      */
-    public static evaluate(cards: number, numCards: number): number {
-        let result = 0;
+    public static evaluate(cards: number, numCards: number): bigint {
+        let result = BigInt(0);
 
-        const sc = (cards >> constants.CLUB_OFFSET) & 0x1FFF;
-        const sd = (cards >> constants.DIAMOND_OFFSET) & 0x1FFF;
-        const sh = (cards >> constants.HEART_OFFSET) & 0x1FFF;
-        const ss = (cards >> constants.SPADE_OFFSET) & 0x1FFF;
+        const efs = 0x1FFF;
+        const sc = ((cards >> constants.CLUB_OFFSET) & efs) >>> 0;
+        const sd = ((cards >> constants.DIAMOND_OFFSET) & efs) >>> 0;
+        const sh = ((cards >> constants.HEART_OFFSET) & efs) >>> 0;
+        const ss = ((cards >> constants.SPADE_OFFSET) & efs) >>> 0;
 
         const ranks = sc | sd | sh | ss;
         const nRanks = constants.BITS_TABLE[ranks];
@@ -317,32 +318,32 @@ export default class Hand {
         if (nRanks >= 5) {
             if (constants.BITS_TABLE[ss] >= 0) {
                 if (constants.STRAIGHT_TABLE[ss] != 0) {
-                    return constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[ss] << constants.TOP_CARD_SHIFT;            
+                    return BigInt(constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[ss] << constants.TOP_CARD_SHIFT);            
                 } else {
-                    result = constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[ss];
+                    result = BigInt(constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[ss]);
                 }
             } else if (constants.BITS_TABLE[sc] >= 5) {
                 if (constants.STRAIGHT_TABLE[sc] != 0) {
-                    return constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[sc] << constants.TOP_CARD_SHIFT;                    
+                    return BigInt(constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[sc] << constants.TOP_CARD_SHIFT);
                 } else {
-                    result = constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[sc]
+                    result = BigInt(constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[sc])
                 }
             } else if (constants.BITS_TABLE[sd] >= 5) {
                 if (constants.STRAIGHT_TABLE[sd] != 0) {
-                    return constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[sd] << constants.TOP_CARD_SHIFT;
+                    return BigInt(constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[sd] << constants.TOP_CARD_SHIFT);
                 } else {
-                    result = constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[sd];
+                    result = BigInt(constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[sd]);
                 }
             } else if (constants.BITS_TABLE[sh] >= 5) {
                 if (constants.STRAIGHT_TABLE[sh] != 0) {
-                    return constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[sh] << constants.TOP_CARD_SHIFT;
+                    return BigInt(constants.HANDTYPE_VALUE_STRAIGHTFLUSH + constants.STRAIGHT_TABLE[sh] << constants.TOP_CARD_SHIFT);
                 } else {
-                    result = constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[sh];
+                    result = BigInt(constants.HANDTYPE_VALUE_FLUSH + constants.TOP_FIVE_CARDS_TABLE[sh]);
                 }
             } else {
                 const st = constants.STRAIGHT_TABLE[ranks];
                 if (st != 0) {
-                    result = constants.HANDTYPE_VALUE_STRAIGHT + (st << constants.TOP_CARD_SHIFT);
+                    result = BigInt(constants.HANDTYPE_VALUE_STRAIGHT) + (BigInt(st) << BigInt(constants.TOP_CARD_SHIFT));
                 }        
          
             }
@@ -351,8 +352,8 @@ export default class Hand {
             //    which is true most of the time when there is a made mask, then if we've
             //    found a five card mask, just return.  This skips the whole process of
             //    computing two_mask/three_mask/etc.
-            if (result != 0 && nDups < 3) {
-                return result;
+            if (result != BigInt(0) && nDups < 3) {
+                return BigInt(result);
             }
         }
         
@@ -362,17 +363,17 @@ export default class Hand {
         //    to make a full house / quads possible.        
         switch (nDups) {
             case 0:
-                return constants.HANDTYPE_VALUE_HIGHCARD + constants.TOP_FIVE_CARDS_TABLE[ranks];
+                return BigInt(constants.HANDTYPE_VALUE_HIGHCARD + constants.TOP_FIVE_CARDS_TABLE[ranks]);
             case 1:
                 var twoMask = ranks ^ (sc ^ sd ^ sh ^ ss);
-                result = constants.HANDTYPE_VALUE_PAIR + constants.TOP_CARD_TABLE[twoMask] << constants.TOP_CARD_SHIFT;
+                result = BigInt(constants.HANDTYPE_VALUE_PAIR) + BigInt(constants.TOP_CARD_TABLE[twoMask]) << BigInt(constants.TOP_CARD_SHIFT);
                 
                 // Only one bit set in twoMask
-                var t = ranks ^ twoMask;
+                var t = BigInt(ranks ^ twoMask);
 
                 // get the top five cards in what is left, drop all but the top three
                 // cards, and shift them by one to get the three desired kickers
-                const kickers = constants.TOP_FIVE_CARDS_TABLE[t] >> constants.CARD_WITDH & ~constants.FIFTH_CARD_MASK;
+                const kickers = BigInt(BigInt(constants.TOP_FIVE_CARDS_TABLE[t]) >> BigInt(constants.CARD_WIDTH) & BigInt(~constants.FIFTH_CARD_MASK));
                 result += kickers;
                 return result;
                 
@@ -380,19 +381,19 @@ export default class Hand {
                 // either two pair or trips
                 var twoMask = ranks ^ (sc ^ sd ^ sh ^ ss);
                 if (twoMask != 0) {
-                    var t = ranks ^ twoMask; // exactly two bits set in twoMask                    
-                    result = constants.HANDTYPE_VALUE_TWOPAIR
-                        + (constants.TOP_FIVE_CARDS_TABLE[twoMask] & (constants.TOP_CARD_MASK | constants.SECOND_CARD_MASK))
-                        + (constants.TOP_CARD_TABLE[t] << constants.THIRD_CARD_SHIFT);
+                    var t = BigInt(ranks ^ twoMask); // exactly two bits set in twoMask                    
+                    result = BigInt(constants.HANDTYPE_VALUE_TWOPAIR)
+                        + (BigInt(constants.TOP_FIVE_CARDS_TABLE[twoMask]) & BigInt((constants.TOP_CARD_MASK | constants.SECOND_CARD_MASK)))
+                        + (BigInt(constants.TOP_CARD_TABLE[Number(t)]) << BigInt(constants.THIRD_CARD_SHIFT));
                     return result;
                 } else {
                     var threeMask = ((sc & sd) | (sh & ss)) & ((sc &sh) | (sd & ss));
-                    result = constants.HANDTYPE_VALUE_TRIPS + (constants.TOP_CARD_TABLE[threeMask] << constants.TOP_CARD_SHIFT);
-                    var t = ranks ^ threeMask; // only one bit set in threeMask
-                    var second = constants.TOP_CARD_TABLE[t];
-                    result += (second << constants.SECOND_CARD_SHIFT);
-                    t ^= 1 << second;
-                    result += constants.TOP_CARD_TABLE[t] << constants.THIRD_CARD_SHIFT;
+                    result = BigInt(constants.HANDTYPE_VALUE_TRIPS) + BigInt((constants.TOP_CARD_TABLE[threeMask]) << constants.TOP_CARD_SHIFT);
+                    var t = BigInt(ranks ^ threeMask); // only one bit set in threeMask
+                    var second = BigInt(constants.TOP_CARD_TABLE[Number(t)]);
+                    result += (second << BigInt(constants.SECOND_CARD_SHIFT));
+                    t ^= BigInt(1) << BigInt(second);
+                    result += BigInt(constants.TOP_CARD_TABLE[Number(t)] << constants.THIRD_CARD_SHIFT);
                     return result;
                 }
 
@@ -401,10 +402,10 @@ export default class Hand {
                 var fourMask = sh & sd & sc & ss;
                 if (fourMask != 0)
                 {
-                    const tc = constants.TOP_CARD_TABLE[fourMask];
-                    result = constants.HANDTYPE_VALUE_FOUR_OF_A_KIND
-                        + tc << constants.TOP_CARD_SHIFT
-                        + ((constants.TOP_CARD_TABLE[ranks ^ (1 << tc)]) << constants.SECOND_CARD_SHIFT);
+                    const tc = BigInt(constants.TOP_CARD_TABLE[fourMask]);
+                    result = BigInt(constants.HANDTYPE_VALUE_FOUR_OF_A_KIND)
+                        + BigInt(tc) << BigInt(constants.TOP_CARD_SHIFT)
+                        + ((BigInt(constants.TOP_CARD_TABLE[ranks ^ (BigInt(1) << BigInt(tc))])) << BigInt(constants.SECOND_CARD_SHIFT));
                     return result;
                 }
 
@@ -553,13 +554,14 @@ export default class Hand {
 
     public static evaluateType(mask: number): HandTypes;
     public static evaluateType(mask: number, numCards: number = 0): HandTypes {
-        const ss = (mask >> constants.SPADE_OFFSET) & 0x1FFF;
-        const sc = (mask >> constants.CLUB_OFFSET) & 0x1FFF;
-        const sd = (mask >> constants.DIAMOND_OFFSET) & 0x1FFF;
-        const sh = (mask >> constants.HEART_OFFSET) & 0x1FFF;
+        const efs = BigInt(0x1FFF);
+        const ss = BigInt((mask >> constants.SPADE_OFFSET) >>> 0) & efs;
+        const sc = BigInt((mask >> constants.CLUB_OFFSET) >>> 0) & efs;
+        const sd = BigInt((mask >> constants.DIAMOND_OFFSET) >>> 0) & efs;
+        const sh = BigInt((mask >> constants.HEART_OFFSET) >>> 0) & efs;
         
         const ranks = sc | sd | sh | ss;
-        const rankInfo = constants.BITS_AND_STR_TABLE[ranks];
+        const rankInfo = constants.BITS_AND_STR_TABLE[Number(ranks)];
         const numDups = numCards - (rankInfo >> 2);
 
         let result = HandTypes.HighCard
@@ -568,10 +570,29 @@ export default class Hand {
                 result = HandTypes.Straight;
             }
 
-            const t = constants.BITS_AND_STR_TABLE[ss] | constants.BITS_AND_STR_TABLE[sc] | constants.BITS_AND_STR_TABLE[sd] | constants.BITS_AND_STR_TABLE[sh];
+            const t = constants.BITS_AND_STR_TABLE[Number(ss)] | constants.BITS_AND_STR_TABLE[Number(sc)] | constants.BITS_AND_STR_TABLE[Number(sd)] | constants.BITS_AND_STR_TABLE[Number(sh)];
             if ((t & 0x01) != 0) {
-                
+                if ((t & 0x02) != 0) {
+                    return HandTypes.StraightFlush;
+                } else {
+                    result = HandTypes.Flush;
+                }
             }
+                
+            if (numDups < 3) {
+                return result;
+            }    
+        }
+        switch (numDups)
+        {
+            case 0:
+                return HandTypes.HighCard;
+            case 1:
+                return HandTypes.Pair;
+            case 2:
+                return ((ranks ^ (sc ^ sd ^ sh ^ss)) != BigInt(0)) ? HandTypes.TwoPair : HandTypes.Trips;
+            default:
+                
         }
     }
 
